@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>吉他谱</title>
+    <!-- <script src="pdf-to-jpg.js"></script> -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.8.335/pdf.min.js"></script>
+</head>
+<style type="text/css">
+
+    /* 定制整个滚动条 */
+    ::-webkit-scrollbar {
+      width: 8px; /* 设置滚动条的宽度 */
+    }
+    
+    /* 定制滚动条轨道 */
+    ::-webkit-scrollbar-track {
+      background: #f1f2f5; /* 设置轨道的背景颜色 */
+      margin: 20px 0;
+    }
+    /* 定制滚动条的滑块（thumb） */
+    ::-webkit-scrollbar-thumb {
+      background: #d7defa; /* 设置滑块的背景颜色 */
+      border-radius: 4px;
+      width: 8px;
+    }
+
+    html {
+      background-color: #29323c;
+      background-image: linear-gradient(-225deg, #CBBACC 0%, #2580B3 100%);
+    }
+    body {
+      /* display: flex; */
+      position: relative;
+    }
+    #pdf_view {
+      position: absolute;
+      top: 0;
+      overflow: auto;
+      display: flex;
+      /* justify-content: center; */
+      align-items: center;
+    }
+    #pdfbox {
+        display: flex;
+        margin-top: 10px;
+        /* margin-left: 100px; */
+    }
+    #list_box {
+      display: flex;
+      /* flex-direction: column;  */
+      left: 20px;
+      top: 80px;
+      position: fixed;
+      width: 380px;
+      /* height: 800px; */
+      background-color: rgba(255, 255, 255, 0.944);
+      z-index: 100;
+      overflow: auto;
+      border-radius: 12px;
+      border: 1px solid #dae9f1;
+
+    }
+    #list {
+      position: absolute;
+      left: 0;
+      top: 0;
+      display: flex;
+      flex-direction: column;
+      padding-bottom: 100px;
+      padding-left: 10px;
+      padding-top: 10px;
+    }
+    #list span {
+      color: rgb(13, 25, 45);
+      margin: 5px 0 5px 10px;
+      font: 12px;
+      white-space: nowrap;
+
+    }
+    #menu, #refresh{
+      width: 40px;
+      height: 40px;
+      background-color: rgb(123, 53, 150);
+      border-radius: 100%;
+      /* border: 1px solid rgba(236, 243, 245, 0.261); */
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      z-index: 200;
+      font: 12px;
+      font-weight: 700;
+      color: rgb(246, 249, 255);
+      line-height: 40px;
+      text-align: center;
+    }
+
+    #refresh {
+      left: 70px;
+    }
+
+    .box {
+      width: 100px;
+      height: 100px;
+      position: relative;
+      background-color: beige;
+    }
+    /* @media screen and (max-width:1200px) {
+      #list_box {
+        background-color: green;
+      }
+    } */
+</style>
+<script>
+
+  // 绑定事件，显示吉他谱并关闭菜单
+  function show_pdf_deal(event){
+    // console.log(new_data)
+    var p_arr = event.target;
+    var content = p_arr.textContent
+    var tag = p_arr.getAttribute('tag')
+    console.log(content)
+    if (tag == 'pdf'){
+      pdf_url = "/pdf/" + content + '.pdf'
+      show_pdf(pdf_url)
+    }else if(tag == 'img'){
+      content = content.replace(/.jpg|.png|.webp/g,'')
+      console.log(content)
+      var filteredArray = new_data.filter(item => item.includes(content));
+      if (filteredArray.includes(content + '.pdf')){
+        filteredArray = filteredArray.filter(item => item!= content + '.pdf')
+      }
+      console.log(filteredArray)
+      show_img(filteredArray)
+    }
+    var list_box = document.getElementById('list_box')
+    list_box.style.display = 'none'
+} 
+
+// 菜单栏显示/隐藏开关
+function showlist(){
+  var list_box = document.getElementById('list_box')
+  list_display = list_box.style.display
+  if(list_display == 'flex'){
+    list_box.style.display = 'none'
+  }else if(list_display == 'none') {
+    list_box.style.display = 'flex'
+    list_box.style.flexDirection = 'column'
+  }
+  
+}
+function refresh(){
+  auto_scroll()
+}
+</script>
+<body >
+    <!-- <div id="drop-zone" >
+        拖拽文件到这里
+    </div> -->
+    <div id="menu" onclick="showlist()">谱</div>
+    <div id="refresh" onclick="mobile_mode()">切</div>
+    <div id="list_box">
+      <div id="list"></div>
+    </div>
+    <div id="pdf_view">
+      <div id="pdfbox"></div>
+    </div>
+    <!-- <canvas id="pdf-canvas"></canvas> -->
+    
+</body>
+<script>
+
+// 将pdf文件渲染到页面上
+function show_pdf(pdfUrl){
+  var pdfbox = document.getElementById("pdf_view");
+  pdfbox.style.height = window.innerHeight + 'px'
+  pdfbox.style.width = window.innerWidth + 'px'
+  // 加载PDF文件
+  document.getElementById('pdfbox').innerHTML = '';
+  pdfjsLib.getDocument(pdfUrl).promise.then(pdf => {
+    // 获取页面总数
+    const pagesCount = pdf.numPages;
+    for (let i =0; i<pagesCount; i++){
+          // 创建一个新的div元素
+      var pdfbox = document.getElementById("pdfbox");
+      var newDiv = document.createElement("canvas");
+      newDiv.setAttribute("id", "pdf-canvas" + (i+1)) 
+      if(isMobile()){
+        newDiv.style.width = "100%";
+      }else{
+        newDiv.style.height = window.innerHeight/1.15+'px';
+      }
+      newDiv.style.marginRight = "10px";
+      newDiv.style.display = "flex"
+      // newDiv.style.height = "800px";
+      // 将新元素添加到body中
+      pdfbox.appendChild(newDiv)
+      // document.body.appendChild(pdfbox);
+    }
+
+    console.log(pagesCount)
+    // 循环处理每一页
+    for (let i = 1; i <= pagesCount; i++) {
+      // 获取页面对象
+      pdf.getPage(i).then(page => {
+        // 获取canvas元素
+        const canvas = document.getElementById('pdf-canvas'+i);
+        // 获取渲染上下文
+        const context = canvas.getContext('2d');
+        // 获取页面原始大小
+        const viewport = page.getViewport({ scale: 1 });
+        // 设置canvas大小
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+ 
+        // 渲染页面到canvas
+        page.render({
+          canvasContext: context,
+          viewport: viewport
+        })
+      });
+    }
+  });
+}
+
+
+function show_img(images){
+  var pdfbox = document.getElementById("pdf_view");
+  pdfbox.style.height = window.innerHeight + 'px'
+  pdfbox.style.width = window.innerWidth + 'px'
+  // 加载PDF文件
+  document.getElementById('pdfbox').innerHTML = '';
+  const pagesCount = images.length;
+
+    const canvases = images.map(() => document.createElement('canvas'));
+    console.log(canvases)
+      // 获取渲染上下文
+    const contexts = canvases.map(canvas => canvas.getContext('2d'));
+
+    images.forEach((ele, i) => {
+      var pdfbox = document.getElementById("pdfbox");
+      // 获取canvas元素
+      const canvas = canvases[i]
+      const context = contexts[i]
+      console.log(canvas)
+      
+      if(isMobile()){
+        canvas.style.width = "100%";
+      }else{
+        canvas.style.height = window.innerHeight/1.15+'px';
+      }
+      canvas.style.marginRight = "10px";
+      canvas.style.display = "flex"
+      var img = new Image();
+      // path = "/pdf/吉他谱转换/image/" + ele
+      path = "/pdf/吉他谱转换/" + ele
+      img.src = path
+      console.log(path)
+      console.log(img)
+
+      // 获取页面对象
+      img.onload = function() {
+    // 设置Canvas的宽高与图片一致
+        canvas.width = img.width;
+        canvas.height = img.height;
+        // 绘制图片到Canvas
+        context.drawImage(img, 0, 0);
+      };
+      pdfbox.appendChild(canvas)
+      
+    })
+    
+}
+
+function show_guitar(){
+  
+}
+
+// 获取本地pdf目录列表
+function get_name(data){
+  // data = data[0]
+  data = data
+  // data = data.filter(str => 
+  //   str.toLowerCase().endsWith('.pdf')
+  // )
+  name_list = []
+  for (var i =0; i<data.length; i++){
+    item = data[i]
+    name1 = item.split('/')
+    name2 = name1[name1.length-1]
+    // console.log(name2)
+    name_list.push(name2)
+  }
+  console.log(name_list)
+  return name_list
+}
+
+ // 判断是否为移动设备函数
+function isMobile() {
+  return (
+      typeof window.orientation !== "undefined" || // 判断是否存在window.orientation属性，此属性在移动设备上一般存在
+      navigator.userAgent.indexOf('IEMobile') !== -1 || // 判断是否为Windows Phone
+      navigator.userAgent.indexOf('iPhone') !== -1 || // 判断是否为iPhone
+      navigator.userAgent.indexOf('Android') !== -1 && navigator.userAgent.indexOf('Mobile') !== -1 || // 判断是否为Android手机
+      navigator.userAgent.indexOf('BlackBerry') !== -1 || // 判断是否为BlackBerry
+      navigator.userAgent.indexOf('Opera Mini') !== -1 // 判断是否为Opera Mini浏览器
+  );
+}
+
+var flag = false
+function mobile_mode(){
+  if (flag ==false){
+    flag =true
+    console.log(flag)
+    console.log('移动端');
+    var pdf_box = document.getElementById("pdfbox");
+    var newDiv = document.getElementsByName('canvas')
+    pdf_box.style.flexDirection = 'column'
+    for(var i = 0; i< newDiv.length;i++){
+      console.log(newDiv[i])
+      newDiv[i].style.width = "100%";
+    }
+    loadNewStylesheet('./static/mobile.css');
+  }else{
+    flag = false
+    console.log('pc端');
+    var pdf_box = document.getElementById("pdfbox");
+    pdf_box.style.flexDirection = 'row'
+    remove_stylesheet()
+  }
+}
+
+ // 判断是否为移动设备
+if (isMobile()) {
+    console.log('移动端');
+    var pdf_box = document.getElementById("pdfbox");
+    var newDiv = document.getElementsByName('canvas')
+    pdf_box.style.flexDirection = 'column'
+    for(var i = 0; i< newDiv.length;i++){
+      console.log(newDiv[i])
+      newDiv[i].style.width = "100%";
+    }
+    loadNewStylesheet('./static/mobile.css');
+    flag = true
+} else {
+    console.log('PC端');
+
+}
+
+
+// 窗口尺寸缩放监听
+window.addEventListener('resize', function() {
+    var list_box = document.getElementById("list_box");
+    list_box.style.height = window.innerHeight + 'px'
+    // console.log('比班花了'+window.innerWidth)
+    var pdfbox = document.getElementById("pdf_view");
+    pdfbox.style.height = window.innerHeight + 'px'
+    pdfbox.style.width = window.innerWidth + 'px'
+});
+
+
+
+// 将吉他谱名称显示在界面
+function show_data(data){
+  var data1 = data.sort((a,b)=>a.localeCompare(b))
+  var list = document.getElementById("list");
+  var list_box = document.getElementById("list_box");
+  list.innerHTML = ''
+  all_data = []
+  for (let i =0; i<data1.length; i++){
+    file_name = data1[i]
+    if (file_name.endsWith('pdf')){
+      // file_name = file_name.replace('.pdf', '')
+      all_data.push(file_name)
+    }else if(file_name.endsWith('jpg') || file_name.endsWith('png') || file_name.endsWith('webp')){
+      file_name = file_name.replace(/\d+/g, '')
+      if (!all_data.includes(file_name)){
+        all_data.push(file_name)
+        console.log(file_name)
+        
+      }
+    }
+  }
+  console.log('是我')
+  console.log(all_data)
+
+
+  for (let i =0; i<all_data.length; i++){
+      var text = ''
+      file_name = all_data[i]
+      list_box.style.display = 'flex'
+      list_box.style.flexDirection = 'column'
+      list_box.style.height = window.innerHeight/1.15 + 'px'
+      var newDiv = document.createElement("span");
+      if (file_name.endsWith('pdf')){
+        text = file_name.replace('.pdf','')
+        // text = file_name
+        newDiv.setAttribute('tag','pdf')
+      }else if(file_name.endsWith('jpg') || file_name.endsWith('png') || file_name.endsWith('webp')){
+        text = file_name
+        newDiv.setAttribute('tag','img')
+      }
+      newDiv.setAttribute("onclick","show_pdf_deal(event)")
+      newDiv.style.font = '12px'
+      list.style.overflow = 'auto'
+      newDiv.innerText = text
+      list.appendChild(newDiv)
+    }
+}
+
+
+function deal_data(data){
+  show_data(data)
+
+
+
+}
+
+
+
+// 生成追加移动端样式表
+function loadNewStylesheet(href) {
+    // 创建一个新的link元素
+    var link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.type = 'text/css';
+    link.href = href;
+    // 将link元素添加到head中
+    document.getElementsByTagName('head')[0].appendChild(link);
+}
+function remove_stylesheet(){
+  var head = document.getElementsByTagName('head')[0];
+// 获取所有的link元素
+var links = head.getElementsByTagName('link');
+// 去除最后一个link元素
+if (links.length > 0) {
+    head.removeChild(links[links.length - 1]);
+}
+}
+ 
+
+
+
+var scroll_f = true
+var interval_my
+function auto_scroll(){
+// 获取元素
+var content = document.getElementById('pdfbox');
+var container = document.getElementById('pdf_view');
+var scrollHeight_c = container.scrollHeight
+ 
+// 开始滚动
+function startScrolling(element) {
+  // 设置滚动速度
+  var scrollSpeed_top = container.scrollTop; // 每毫秒滚动的像素数
+  var scrollSpeed_left = container.scrollLeft; // 每毫秒滚动的像素数
+  // 设置定时器，每隔一定时间（例如50毫秒）更新元素位置
+  interval_my = setInterval(function() {
+    if(isMobile()){
+      // 增加元素的位置
+    element.scrollTop = scrollSpeed_top
+    scrollSpeed_top+=1
+    scroll_length = scrollSpeed_top - (element.scrollHeight-element.clientHeight) 
+    }else{
+      // 增加元素的位置
+      element.scrollLeft = scrollSpeed_left
+      scrollSpeed_left+=1
+      scroll_length = scrollSpeed_left - (element.scrollWidth-parseInt(element.clientWidth))
+    }
+    if (scroll_length>0) {
+        // 停止滚动
+        console.log('停止滚动')
+        clearInterval(interval_my);
+        scroll_f = true
+      }
+    
+  }, 50); // 时间间隔可以根据需要调整
+}
+ 
+if(scroll_f == true){
+  scroll_f = false
+  // 调用函数开始滚动
+  if(isMobile()){
+      if (container.scrollTop<1) {setTimeout(function() {startScrolling(container);}, 15000);}else{startScrolling(container);}
+    }else{
+      setTimeout(function() {
+        startScrolling(container);
+      }, 60000);
+    }
+    
+  }else{
+    scroll_f = true
+    console.log('执行了')
+    clearInterval(interval_my);
+  }
+
+
+}
+
+
+// 向服务器请求目录数据
+function get_data_rooter(){
+  fetch('/data', {
+  method: 'POST', // 指定请求方法
+  headers: {
+    'Content-Type': 'application/json' // 设置头部内容类型为JSON
+  }
+  // body: JSON.stringify(data) // 将数据转换为JSON字符串
+})
+  .then(response => response.json())
+  .then(data => {
+    // 在这里使用从服务器获取的数据
+    console.log(data); // 输出：John
+    new_data = get_name(data)
+    deal_data(new_data)
+    // console.log(data.age); // 输出：25
+  });
+}
+get_data_rooter()
+
+
+
+</script>
+</html>

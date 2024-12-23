@@ -1,0 +1,23 @@
+{
+  "name": "show_pdf",
+  "version": "1.0.0",
+  "main": "main.js",
+  "scripts": {
+    "test": "webpack",
+    "dev": "webpack-dev-server  --mode development",
+    "build": "webpack --mode development"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "webpack": "^5.94.0",
+    "webpack-cil": "^0.0.1-security"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.0",
+    "nodemon": "^3.1.6"
+  }
+}
